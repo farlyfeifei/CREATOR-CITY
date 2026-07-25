@@ -79,6 +79,12 @@ async def generate_roundtable(payload: dict[str, Any]) -> dict[str, Any]:
                 "provider": validated.provider,
             }
         except DialogueQualityError as error:
+            print(
+                "[agent-chat-api] roundtable validation failed "
+                f"type=dialogue_quality attempt={attempt + 1}/{VALIDATION_RETRY_ATTEMPTS} "
+                f"reason={error.message}",
+                flush=True,
+            )
             last_error = APIError(502, "upstream_response_invalid", error.message)
             _add_quality_retry_feedback(request_payload, error)
             if attempt + 1 < VALIDATION_RETRY_ATTEMPTS:
@@ -86,6 +92,12 @@ async def generate_roundtable(payload: dict[str, Any]) -> dict[str, Any]:
         except APIError as error:
             if error.code != "upstream_response_invalid":
                 raise
+            print(
+                "[agent-chat-api] roundtable validation failed "
+                f"type=provider_result attempt={attempt + 1}/{VALIDATION_RETRY_ATTEMPTS} "
+                f"reason={error.message}",
+                flush=True,
+            )
             last_error = error
             if attempt + 1 < VALIDATION_RETRY_ATTEMPTS:
                 await asyncio.sleep(0.25 * (attempt + 1))
