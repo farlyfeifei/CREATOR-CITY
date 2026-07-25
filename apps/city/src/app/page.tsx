@@ -18,7 +18,7 @@ const chapters = [
 export default function HomePage() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
-  const [email, setEmail] = useState("creator@city.ai");
+  const [username, setUsername] = useState("creator");
   const [password, setPassword] = useState("creator2026");
   const [error, setError] = useState("");
   const [entering, setEntering] = useState(false);
@@ -33,11 +33,11 @@ export default function HomePage() {
 
   const signIn = (event: React.FormEvent) => {
     event.preventDefault();
-    if (!email.includes("@") || password.length < 4) {
-      setError("请输入有效邮箱，密码至少 4 位");
+    if (!username.trim() || password.length < 4) {
+      setError("请输入用户名，密码至少 4 位");
       return;
     }
-    createSession(email.trim());
+    createSession(username.trim());
     sessionStorage.setItem("creator-city-arrival", "gate");
     setEntering(true);
   };
@@ -90,8 +90,8 @@ export default function HomePage() {
               <p className="login-console-kicker">京城创作者会馆</p>
               <h2>持创作者身份入城</h2>
               <p className="login-console-copy">首版使用本地演示登录。凭证只留在当前浏览器，不会上传密码。</p>
-              <label htmlFor="email">邮箱 / EMAIL</label>
-              <input id="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" />
+              <label htmlFor="username">用户名 / USERNAME</label>
+              <input id="username" value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="username" />
               <label htmlFor="password">口令 / PASSWORD</label>
               <input id="password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" />
               {error && <p className="login-error">{error}</p>}
