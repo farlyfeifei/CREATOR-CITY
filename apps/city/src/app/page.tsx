@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import { GateEntrance } from "@/components/GateEntrance";
 import { LightRays } from "@/components/motion/LightRays";
 import { SplitRevealText } from "@/components/motion/SplitRevealText";
-import { loadProfile } from "@/features/profile";
 import { createSession, loadSession } from "@/features/session";
 
 const chapters = [
@@ -26,9 +25,9 @@ export default function HomePage() {
   const reduced = useReducedMotion();
 
   useEffect(() => {
-    router.prefetch("/onboarding");
+    router.prefetch("/city/neon");
     const session = loadSession();
-    if (session) router.replace(loadProfile() ? "/city/neon" : "/onboarding");
+    if (session) router.replace("/city/neon");
     else setReady(true);
   }, [router]);
 
@@ -43,7 +42,7 @@ export default function HomePage() {
     setEntering(true);
   };
 
-  const finishEntrance = useCallback(() => router.push("/onboarding"), [router]);
+  const finishEntrance = useCallback(() => router.push("/city/neon"), [router]);
 
   if (!ready) return <main className="min-h-screen bg-[#08100e]" />;
 

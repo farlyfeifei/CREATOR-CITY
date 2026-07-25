@@ -4,7 +4,7 @@ import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
-import { BarChart3, Clapperboard, Clock3, FileStack, FileText, GitFork, Image as ImageIcon, Link2, LoaderCircle, MessageSquareText, Palette, ScanLine, Sparkles, Trash2, UploadCloud, UserRound, Video, WandSparkles } from "lucide-react";
+import { BarChart3, Clapperboard, Clock3, FileStack, FileText, GitFork, Image as ImageIcon, Link2, LoaderCircle, Map as MapIcon, MessageSquareText, Palette, ScanLine, Sparkles, Trash2, UploadCloud, UserRound, Video, WandSparkles } from "lucide-react";
 import {
   createEmptyProfile,
   createEmptyProject,
@@ -442,7 +442,7 @@ export default function OnboardingPage() {
       <div className="relative z-[2] mx-auto max-w-7xl">
         <motion.header className="studio-header ingest-header flex flex-wrap items-center justify-between gap-5 pb-5" initial={reduced ? false : { opacity: 0, y: -72 }} animate={{ opacity: 1, y: 0 }} transition={{ type: "spring", stiffness: 150, damping: 19, delay: reduced ? 0 : 0.04 }}>
           <div className="studio-title-lockup"><p className="studio-kicker">CREATOR STORY ENGINE / 01</p><h1 className="mt-1 text-2xl font-bold sm:text-3xl">让每份真实素材，进入你的个人影片</h1><p className="mt-2 text-sm">导入资料、标记经历、选择视觉世界，再由 Remotion 按当前用户数据现场编排。</p><span aria-hidden="true">开场</span></div>
-          <div className="ingest-header-actions"><span><i />当前档案自动隔离保存</span><Link className="studio-button secondary" href="/profile">查看主页</Link></div>
+          <div className="ingest-header-actions"><span><i />当前档案自动隔离保存</span><Link className="studio-button secondary" href="/city/neon"><MapIcon size={16} />返回广场</Link><Link className="studio-button secondary" href="/profile">查看主页</Link></div>
         </motion.header>
 
         <motion.div className="ingest-source-rail" initial={reduced ? false : { opacity: 0, y: -36 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: reduced ? 0 : .1 }}>

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Player, type PlayerRef } from "@remotion/player";
-import { ArrowDown, ArrowUp, CheckCircle2, Clapperboard, Download, FilePenLine, Layers3, LoaderCircle, RotateCcw, Sparkles, Square } from "lucide-react";
+import { ArrowDown, ArrowUp, CheckCircle2, Clapperboard, Download, FilePenLine, Layers3, LoaderCircle, Map, RotateCcw, Sparkles, Square } from "lucide-react";
 import { CreatorIntro, CreatorIntroSchema, type CreatorIntroProps } from "@/remotion/CreatorIntro";
 import { buildCreatorStoryboard, getStoryboardDuration, type CreatorStoryboard } from "@/remotion/storyboard";
 import { loadProfile, type UserProfile } from "@/features/profile";
@@ -198,7 +198,7 @@ export default function VideoPage() {
       <div className="relative z-[2] mx-auto max-w-[1540px]">
         <header className="studio-header flex flex-wrap items-center justify-between gap-5 pb-5" data-reveal>
           <div className="flex items-start gap-3"><span className="studio-brand-mark"><Clapperboard size={22} /></span><div className="studio-title-lockup"><p className="studio-kicker">REMOTION DIRECTOR</p><h1 className="mt-1 text-2xl font-bold sm:text-3xl">个人影片导演台</h1><p className="mt-2 text-sm text-[#aeb7b3]">{storyboard ? `实时 Remotion 预览 · ${storyboard.scenes.length} 个镜头 · ${(duration / storyboard.fps).toFixed(0)} 秒 · ${projectMediaCount} 份用户素材` : "正在根据当前用户资料构建故事板…"}</p><span aria-hidden="true">导演</span></div></div>
-          <div className="flex flex-wrap gap-2"><button className="studio-button secondary" type="button" onClick={resetStoryboard}><RotateCcw size={16} />重置编排</button><Link className="studio-button secondary" href="/onboarding"><FilePenLine size={16} />编辑资料</Link><Link className="studio-button primary" href="/profile"><CheckCircle2 size={16} />发布到主页</Link></div>
+          <div className="flex flex-wrap gap-2"><Link className="studio-button secondary" href="/city/neon"><Map size={16} />返回广场</Link><button className="studio-button secondary" type="button" onClick={resetStoryboard}><RotateCcw size={16} />重置编排</button><Link className="studio-button secondary" href="/onboarding"><FilePenLine size={16} />编辑资料</Link><Link className="studio-button primary" href="/profile"><CheckCircle2 size={16} />发布到主页</Link></div>
         </header>
 
         <section className="director-workspace mt-6 grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_390px]" data-reveal data-reveal-delay="0.08">

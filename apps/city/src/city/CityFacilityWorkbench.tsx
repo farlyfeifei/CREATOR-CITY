@@ -47,6 +47,7 @@ import {
 import { CITY_NPCS } from "@/city/config/npcs";
 import { projectsMuseum } from "@/data/mockData";
 import { publicProfiles } from "@/data/publicProfiles";
+import { loadProfile } from "@/features/profile";
 import type { SceneObjectDef, SceneObjectId } from "@/features/types";
 import { CreatorIntro, type CreatorIntroProps } from "@/remotion/CreatorIntro";
 import { buildCreatorStoryboard, getStoryboardDuration } from "@/remotion/storyboard";
@@ -182,6 +183,8 @@ function GalleryWorkbench() {
 }
 
 function StudioWorkbench() {
+  const [hasProfile, setHasProfile] = useState(false);
+  useEffect(() => { setHasProfile(Boolean(loadProfile())); }, []);
   return <div className="city-studio-bench">
     <motion.section className="city-studio-stage" initial={{ opacity: 0, scale: .96 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: .45 }}>
       <div className="city-studio-lens" aria-hidden="true"><i /><i /><i /><span>36s</span></div>
@@ -193,7 +196,11 @@ function StudioWorkbench() {
       <article><span>02</span><img src="/pixel-icons/sparkle-star.png" alt="" /><div><b>叙事与分镜</b><p>从事实中提取命题、职责、行动和可核验结果，再决定 Motion 节拍。</p></div></article>
       <article><span>03</span><img src="/pixel-icons/play.png" alt="" /><div><b>现场生成</b><p>左侧 Motion、右侧真实素材协同演示，Remotion 按当前用户数据渲染。</p></div></article>
     </section>
-    <footer className="city-studio-actions"><a href="/onboarding">补充个人资料</a><a className="primary" href="/video"><Play size={15} />打开主页影片工作台</a></footer>
+    <footer className="city-studio-actions">
+      <a className={!hasProfile ? "primary" : ""} href="/onboarding">{hasProfile ? "编辑个人简历" : "创建个人简历"}</a>
+      {hasProfile && <a href="/profile">查看个人主页</a>}
+      {hasProfile && <a className="primary" href="/video"><Play size={15} />打开主页影片工作台</a>}
+    </footer>
   </div>;
 }
 

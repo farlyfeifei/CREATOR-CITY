@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { ArrowRight, Building2, Check, Film, LogOut, MessageCircleMore, UserRound, X } from "lucide-react";
+import { ArrowRight, Building2, Check, FileText, LogOut, MessageCircleMore, UserRound, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CityFacilityWorkbench } from "@/city/CityFacilityWorkbench";
@@ -103,8 +103,8 @@ export function CityPage() {
     <main className="city-page relative h-svh w-screen overflow-hidden bg-[#aedbd0]">
       <CityGame onObjectSelect={selectObject} />
       <nav className="city-nav absolute right-3 top-3 z-20 sm:right-5 sm:top-5" aria-label="城市导航">
-        <a href={CHAT_DEBATE_URL} title="辩论群聊"><MessageCircleMore size={17} /><span>群聊</span></a>
-        <a href="/video" title="个人影片"><Film size={17} /><span>影片</span></a>
+        <a href="/onboarding" title="个人简历生成"><FileText size={17} /><span>个人简历</span></a>
+        <a href={CHAT_DEBATE_URL} title="Agent 辩论"><MessageCircleMore size={17} /><span>Agent 辩论</span></a>
         <a className="city-nav-profile" href="/profile" title="个人主页"><UserRound size={17} /><span>{name}</span></a>
         <button type="button" onClick={signOut} title="退出登录" aria-label="退出登录"><LogOut size={17} /><span>退出</span></button>
       </nav>
