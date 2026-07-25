@@ -32,7 +32,8 @@ export function CityPage() {
   const facilityFor = (object: CityInteractable): SceneObjectDef | null => {
     if (object.kind === "facility") return object;
     const routeMap: Record<string, SceneObjectId> = {
-      "/video": "studio",
+      "/video": "homepage",
+      "/profile": "studio",
       "/intelligence": "bulletin",
       "/skills": "skillgarden",
       "/projects": "hackathon",
@@ -51,6 +52,10 @@ export function CityPage() {
     const facility = facilityFor(selected);
     if (facility?.id === "agentroundtable") {
       window.location.assign(CHAT_DEBATE_URL);
+      return;
+    }
+    if (facility?.id === "studio" || facility?.id === "homepage") {
+      window.location.assign(facility.route);
       return;
     }
     if (facility) {

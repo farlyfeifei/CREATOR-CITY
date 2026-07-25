@@ -27,6 +27,7 @@ export const cityAssets = {
   characters: "/assets/city/character-atlas.png",
   facilities: {
     studio: "/assets/city/v2/profile-studio-optimized.png",
+    homepage: "/assets/city/v2/profile-studio-optimized.png",
     bulletin: "/assets/city/v2/intelligence-academy.webp",
     leaderboard: "/assets/city/v2/model-observatory.webp",
     "table-dev": "/assets/city/v2/dev-test-workshop.webp",

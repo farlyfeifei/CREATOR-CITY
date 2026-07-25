@@ -13,7 +13,8 @@ type Callbacks = {
 type Waypoint = { x: number; y: number };
 
 const facilityVisuals: Record<SceneObjectId, { signY: number; imageScale?: number; imageOffsetY?: number; fontSize?: number }> = {
-  studio: { signY: 0.39, imageScale: 0.96, imageOffsetY: 2, fontSize: 16 },
+  studio: { signY: 0.39, imageScale: 0.94, imageOffsetY: 4, fontSize: 12 },
+  homepage: { signY: 0.39, imageScale: 0.96, imageOffsetY: 2, fontSize: 16 },
   bulletin: { signY: 0.31, imageScale: 0.96, imageOffsetY: 5, fontSize: 13 },
   leaderboard: { signY: 0.55, imageScale: 0.95, imageOffsetY: 4, fontSize: 13 },
   "table-dev": { signY: 0.47, imageScale: 0.95, imageOffsetY: 5, fontSize: 13 },
@@ -169,7 +170,7 @@ export class CityScene extends Phaser.Scene {
 
   private addFacilitySign(container: Phaser.GameObjects.Container, object: SceneObjectDef, y: number, fontSize: number) {
     const width = Math.min(object.w * 0.78, Math.max(112, object.nameCn.length * fontSize + 30));
-    const height = object.id === "studio" ? 31 : 27;
+    const height = object.id === "homepage" ? 31 : 27;
     const plaque = this.add.graphics();
     plaque.fillStyle(cityPalette.ink, 0.35).fillRect(-width / 2 + 4, y - height / 2 + 5, width, height);
     plaque.fillStyle(0xd8ad55, 1).fillRect(-width / 2 - 4, y - height / 2 + 4, width + 8, height - 8);

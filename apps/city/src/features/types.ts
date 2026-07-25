@@ -4,6 +4,7 @@
 
 export type SceneObjectId =
   | "studio"
+  | "homepage"
   | "bulletin"
   | "leaderboard"
   | "skillgarden"
