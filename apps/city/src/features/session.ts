@@ -9,7 +9,7 @@ const SESSION_KEY = "creator-city-session";
 export function loadSession(): DemoSession | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = localStorage.getItem(SESSION_KEY);
+    const raw = sessionStorage.getItem(SESSION_KEY);
     return raw ? (JSON.parse(raw) as DemoSession) : null;
   } catch {
     return null;
@@ -23,10 +23,13 @@ export function createSession(email: string): DemoSession {
     displayName: localName.replace(/[._-]+/g, " "),
     signedInAt: new Date().toISOString(),
   };
-  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  localStorage.removeItem(SESSION_KEY);
   return session;
 }
 
 export function clearSession(): void {
-  if (typeof window !== "undefined") localStorage.removeItem(SESSION_KEY);
+  if (typeof window === "undefined") return;
+  sessionStorage.removeItem(SESSION_KEY);
+  localStorage.removeItem(SESSION_KEY);
 }
