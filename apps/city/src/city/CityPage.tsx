@@ -7,12 +7,21 @@ import { useRouter } from "next/navigation";
 import { CityFacilityWorkbench } from "@/city/CityFacilityWorkbench";
 import { CITY_NPCS } from "@/city/config/npcs";
 import { SCENE_OBJECTS } from "@/city/config/sceneObjects";
-import { loadProfile } from "@/features/profile";
-import { clearSession, loadSession } from "@/features/session";
+import { loadCloudProfile, loadProfile } from "@/features/profile";
+import { clearSession, isGuestSession, loadSession } from "@/features/session";
 import type { CityInteractable, SceneObjectDef, SceneObjectId } from "@/features/types";
 
 const CityGame = dynamic(() => import("@/city/CityGame").then((module) => module.CityGame), { ssr: false });
 const CHAT_DEBATE_URL = process.env.NEXT_PUBLIC_CHAT_DEBATE_URL || "http://127.0.0.1:5190";
+
+function chatDebateUrl(params: Record<string, string> = {}) {
+  const url = new URL(CHAT_DEBATE_URL, "http://localhost");
+  const session = loadSession();
+  if (isGuestSession(session)) url.searchParams.set("guest", "1");
+  else if (session?.email) url.searchParams.set("creator", session.email);
+  for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value);
+  return url.toString();
+}
 
 export function CityPage() {
   const router = useRouter();
@@ -25,6 +34,7 @@ export function CityPage() {
   useEffect(() => {
     if (!loadSession()) { router.replace("/"); return; }
     setName(loadProfile()?.name || "Creator");
+    void loadCloudProfile().then((profile) => setName(profile?.name || loadProfile()?.name || "Creator"));
   }, [router]);
 
   const signOut = () => { clearSession(); router.push("/"); };
@@ -51,7 +61,7 @@ export function CityPage() {
     if (!selected) return;
     const facility = facilityFor(selected);
     if (facility?.id === "agentroundtable") {
-      window.location.assign(CHAT_DEBATE_URL);
+      window.location.assign(chatDebateUrl());
       return;
     }
     if (facility?.id === "studio" || facility?.id === "homepage") {
@@ -72,7 +82,7 @@ export function CityPage() {
 
   const openPersonalPage = () => {
     if (!selectedPersonalAgent) return;
-    window.location.assign(`${CHAT_DEBATE_URL}/?profile=${encodeURIComponent(selectedPersonalAgent.debateAgentId!)}`);
+    window.location.assign(chatDebateUrl({ profile: selectedPersonalAgent.debateAgentId! }));
   };
 
   const toggleDebateAgent = () => {
@@ -85,7 +95,7 @@ export function CityPage() {
 
   const startDebate = () => {
     if (debateAgentIds.length < 2 || debateAgentIds.length > 6) return;
-    window.location.assign(`${CHAT_DEBATE_URL}/?participants=${encodeURIComponent(debateAgentIds.join(","))}`);
+    window.location.assign(chatDebateUrl({ participants: debateAgentIds.join(",") }));
   };
 
   const dismissSelected = () => {
@@ -109,7 +119,7 @@ export function CityPage() {
       <CityGame onObjectSelect={selectObject} />
       <nav className="city-nav absolute right-3 top-3 z-20 sm:right-5 sm:top-5" aria-label="城市导航">
         <a href="/onboarding" title="个人简历生成"><FileText size={17} /><span>个人简历</span></a>
-        <a href={CHAT_DEBATE_URL} title="Agent 辩论"><MessageCircleMore size={17} /><span>Agent 辩论</span></a>
+        <a href={chatDebateUrl()} title="Agent 辩论"><MessageCircleMore size={17} /><span>Agent 辩论</span></a>
         <a className="city-nav-profile" href="/profile" title="个人主页"><UserRound size={17} /><span>{name}</span></a>
         <button type="button" onClick={signOut} title="退出登录" aria-label="退出登录"><LogOut size={17} /><span>退出</span></button>
       </nav>

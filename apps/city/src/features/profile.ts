@@ -3,7 +3,8 @@
  * public profile. The browser store is an MVP persistence layer only.
  */
 
-import { loadSession } from "./session";
+import { isGuestSession, loadSession } from "./session";
+import { supabase } from "@/lib/supabase";
 
 export const PROFILE_VERSION = 6 as const;
 export const STORAGE_KEY = "creator-city-profile";
@@ -295,11 +296,12 @@ export function normalizeProfile(input: unknown): UserProfile {
 export function loadProfile(): UserProfile | null {
   if (typeof window === "undefined") return null;
   try {
+    const storage = isGuestSession() ? sessionStorage : localStorage;
     const storageKey = getProfileStorageKey();
-    const legacy = storageKey === STORAGE_KEY ? null : localStorage.getItem(STORAGE_KEY);
-    const raw = localStorage.getItem(storageKey) || legacy;
+    const legacy = isGuestSession() || storageKey === STORAGE_KEY ? null : localStorage.getItem(STORAGE_KEY);
+    const raw = storage.getItem(storageKey) || legacy;
     if (!raw) return null;
-    if (legacy && !localStorage.getItem(storageKey)) {
+    if (legacy && !storage.getItem(storageKey)) {
       localStorage.setItem(storageKey, legacy);
       localStorage.removeItem(STORAGE_KEY);
     }
@@ -310,7 +312,7 @@ export function loadProfile(): UserProfile | null {
     );
     if (isUntouchedLegacyDemo) {
       const builtin = createBuiltinProfile();
-      localStorage.setItem(storageKey, JSON.stringify(builtin));
+      storage.setItem(storageKey, JSON.stringify(builtin));
       return builtin;
     }
     const hasLegacyIdentity = normalized.id === "builtin-yu-dongyachi" || normalized.name === "林墨" || normalized.name === "于董雅池";
@@ -322,7 +324,7 @@ export function loadProfile(): UserProfile | null {
         updatedAt: new Date().toISOString(),
       };
     }
-    localStorage.setItem(storageKey, JSON.stringify(normalized));
+    storage.setItem(storageKey, JSON.stringify(normalized));
     return normalized;
   } catch {
     return null;
@@ -331,10 +333,52 @@ export function loadProfile(): UserProfile | null {
 
 export function saveProfile(profile: UserProfile): void {
   if (typeof window === "undefined") return;
-  localStorage.setItem(getProfileStorageKey(), JSON.stringify(normalizeProfile(profile)));
+  const normalized = normalizeProfile(profile);
+  const storage = isGuestSession() ? sessionStorage : localStorage;
+  storage.setItem(getProfileStorageKey(), JSON.stringify(normalized));
+  if (!isGuestSession()) void saveProfileToCloud(normalized);
+}
+
+export async function loadCloudProfile(): Promise<UserProfile | null> {
+  if (isGuestSession()) return loadProfile();
+  if (!supabase) return loadProfile();
+  const { data: userData } = await supabase.auth.getUser();
+  const userId = userData.user?.id;
+  if (!userId) return loadProfile();
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("profile_json")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error || !data?.profile_json) return loadProfile();
+  const normalized = normalizeProfile(data.profile_json);
+  if (typeof window !== "undefined") {
+    localStorage.setItem(getProfileStorageKey(), JSON.stringify(normalized));
+  }
+  return normalized;
+}
+
+export async function saveProfileToCloud(profile: UserProfile): Promise<void> {
+  if (isGuestSession()) return;
+  if (!supabase) return;
+  const { data: userData } = await supabase.auth.getUser();
+  const userId = userData.user?.id;
+  if (!userId) return;
+  const normalized = normalizeProfile(profile);
+  const { error } = await supabase.from("profiles").upsert({
+    user_id: userId,
+    profile_json: normalized,
+    display_name: normalized.name || null,
+    avatar_url: normalized.mediaAssets.find((asset) => asset.purpose === "photo")?.runtimeUrl || null,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: "user_id" });
+  if (error) console.warn("Failed to save Supabase profile", error.message);
 }
 
 function getProfileStorageKey() {
+  if (isGuestSession()) return `${STORAGE_KEY}:guest`;
   const email = loadSession()?.email.trim().toLowerCase();
   return email ? `${STORAGE_KEY}:${encodeURIComponent(email)}` : STORAGE_KEY;
 }

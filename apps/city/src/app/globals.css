@@ -905,6 +905,12 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .login-console button { display: flex; width: 100%; min-height: 52px; align-items: center; justify-content: space-between; margin-top: 27px; border: 1px solid #f1cf7e; background: #9f312b; color: #fff7db; padding: 12px 16px 12px 19px; cursor: pointer; font-weight: 750; transition: background .2s ease, transform .2s ease; }
 .login-console button:hover { background: #bd4338; transform: translateY(-2px); }
 .login-console button:disabled { cursor: wait; opacity: .7; }
+.login-actions { display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(0, .88fr); gap: 11px; margin-top: 27px; }
+.login-actions button { margin-top: 0; }
+.login-actions button.secondary { border-color: rgba(241,207,126,.54); background: rgba(255,255,255,.06); color: #ffe8a6; }
+.login-actions button.secondary:hover { background: rgba(255,255,255,.12); }
+.login-actions button.guest { grid-column: 1 / -1; min-height: 46px; border-color: rgba(255,255,255,.24); background: transparent; color: rgba(255,255,255,.76); }
+.login-actions button.guest:hover { background: rgba(255,255,255,.08); color: #fff; }
 .login-error { margin-top: 13px; border-left: 2px solid #ef6b5f; background: rgba(183,52,43,.16); color: #ffaaa2; padding: 9px 11px; font-size: 12px; }
 .login-console-foot { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px; margin-top: 23px; color: rgba(255,255,255,.34); font: 700 8px/1 "Cascadia Mono", Consolas, monospace; }
 .login-console-foot span { height: 1px; background: rgba(255,255,255,.14); }
@@ -1515,6 +1521,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   .login-chapters > div + div { border-left: 0; border-top: 1px solid rgba(255,255,255,.16); padding-left: 0; }
   .login-console-body { padding: 24px 20px; }
   .login-console h2 { font-size: 27px; }
+  .login-actions { grid-template-columns: 1fr; }
   .studio-title-lockup > span { display: none; }
   .onboarding-page .studio-steps button { min-width: 0; padding-inline: 7px; }
   .onboarding-page .studio-steps button span:last-child { overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }

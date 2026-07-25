@@ -1,13 +1,13 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ArrowRight, Film, LockKeyhole, Map, Sparkles } from "lucide-react";
+import { ArrowRight, Film, LockKeyhole, Map, Sparkles, UserRound } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { GateEntrance } from "@/components/GateEntrance";
 import { LightRays } from "@/components/motion/LightRays";
 import { SplitRevealText } from "@/components/motion/SplitRevealText";
-import { createSession, loadSession } from "@/features/session";
+import { createGuestSession, hydrateSession, registerSession, signInSession } from "@/features/session";
 
 const chapters = [
   { icon: Sparkles, label: "导入创作档案", meta: "GitHub / 简历 / 论文" },
@@ -18,28 +18,63 @@ const chapters = [
 export default function HomePage() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
-  const [username, setUsername] = useState("creator");
-  const [password, setPassword] = useState("creator2026");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [entering, setEntering] = useState(false);
   const reduced = useReducedMotion();
 
   useEffect(() => {
     router.prefetch("/city/neon");
-    const session = loadSession();
-    if (session) router.replace("/city/neon");
-    else setReady(true);
+    let active = true;
+    void hydrateSession().then((session) => {
+      if (!active) return;
+      if (session) router.replace("/city/neon");
+      else setReady(true);
+    });
+    return () => { active = false; };
   }, [router]);
 
-  const signIn = (event: React.FormEvent) => {
+  const signIn = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!username.trim() || password.length < 4) {
-      setError("请输入用户名，密码至少 4 位");
+    if (!username.trim() || !username.includes("@")) {
+      setError("请输入有效邮箱");
       return;
     }
-    createSession(username.trim());
-    sessionStorage.setItem("creator-city-arrival", "gate");
-    setEntering(true);
+    setError("");
+    try {
+      await signInSession(username.trim(), password);
+      sessionStorage.setItem("creator-city-arrival", "gate");
+      setEntering(true);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "登录失败，请稍后重试");
+    }
+  };
+
+  const register = async () => {
+    if (!username.trim() || !username.includes("@")) {
+      setError("请输入有效邮箱");
+      return;
+    }
+    setError("");
+    try {
+      await registerSession(username.trim(), password);
+      sessionStorage.setItem("creator-city-arrival", "gate");
+      setEntering(true);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "注册失败，请稍后重试");
+    }
+  };
+
+  const enterAsGuest = async () => {
+    setError("");
+    try {
+      await createGuestSession();
+      sessionStorage.setItem("creator-city-arrival", "gate");
+      setEntering(true);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "游客模式启动失败，请稍后重试");
+    }
   };
 
   const finishEntrance = useCallback(() => router.push("/city/neon"), [router]);
@@ -89,16 +124,24 @@ export default function HomePage() {
               <span className="login-seal"><LockKeyhole size={22} /></span>
               <p className="login-console-kicker">京城创作者会馆</p>
               <h2>持创作者身份入城</h2>
-              <p className="login-console-copy">首版使用本地演示登录。凭证只留在当前浏览器，不会上传密码。</p>
-              <label htmlFor="username">用户名 / USERNAME</label>
-              <input id="username" value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="username" />
-              <label htmlFor="password">口令 / PASSWORD</label>
+              <p className="login-console-copy">使用邮箱和密码登录 Supabase。注册后个人资料和 Agent 信息会保存到云端。</p>
+              <label htmlFor="username">邮箱 / EMAIL</label>
+              <input id="username" type="email" value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="email" />
+              <label htmlFor="password">密码 / PASSWORD</label>
               <input id="password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" />
               {error && <p className="login-error">{error}</p>}
+              <div className="login-actions">
               <button type="submit" disabled={entering}>
-                <span>{entering ? "正在开启城门" : "推门进入创作者之城"}</span><ArrowRight size={18} />
+                <span>{entering ? "正在登录" : "登录已有账号"}</span><ArrowRight size={18} />
               </button>
-              <div className="login-console-foot"><span /><small>DEMO ACCOUNT READY</small><span /></div>
+                <button className="secondary" type="button" disabled={entering} onClick={register}>
+                  <span>注册新账号</span><Sparkles size={18} />
+                </button>
+                <button className="guest" type="button" disabled={entering} onClick={enterAsGuest}>
+                  <span>游客试玩</span><UserRound size={18} />
+                </button>
+              </div>
+              <div className="login-console-foot"><span /><small>游客数据将在关闭网页后清除</small><span /></div>
             </div>
           </form>
         </section>

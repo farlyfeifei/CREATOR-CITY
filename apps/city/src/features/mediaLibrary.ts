@@ -5,10 +5,14 @@ import type {
   ProjectMediaType,
   UserProfile,
 } from "./profile";
+import { isGuestSession } from "./session";
+import { supabase } from "@/lib/supabase";
 
 const DB_NAME = "creator-city-media";
 const DB_VERSION = 1;
 const STORE_NAME = "assets";
+const BUCKET_NAME = "creator-media";
+const guestMedia = new Map<string, Blob>();
 
 type StoredMedia = { id: string; blob: Blob };
 type MediaMetadata = Pick<ProfileMediaAsset, "durationInSeconds" | "width" | "height">;
@@ -34,6 +38,10 @@ function openMediaDatabase(): Promise<IDBDatabase> {
 
 function mediaId() {
   return `media-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+function safeFileName(name: string) {
+  return name.replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") || "upload";
 }
 
 export function inferMediaKind(file: File): ProfileMediaKind | null {
@@ -114,16 +122,23 @@ export async function inspectMediaFile(file: File): Promise<MediaMetadata> {
 export async function storeMediaFile(file: File, kind: ProfileMediaKind, options: StoreMediaOptions = {}): Promise<ProfileMediaAsset> {
   const id = mediaId();
   const metadata = await inspectMediaFile(file);
-  const database = await openMediaDatabase();
-  await new Promise<void>((resolve, reject) => {
-    const transaction = database.transaction(STORE_NAME, "readwrite");
-    transaction.objectStore(STORE_NAME).put({ id, blob: file } satisfies StoredMedia);
-    transaction.oncomplete = () => resolve();
-    transaction.onerror = () => reject(transaction.error || new Error("媒体保存失败"));
-    transaction.onabort = () => reject(transaction.error || new Error("媒体保存已取消"));
-  });
-  database.close();
-  return {
+  const guest = isGuestSession();
+  if (!guest) {
+    try {
+      const database = await openMediaDatabase();
+      await new Promise<void>((resolve, reject) => {
+        const transaction = database.transaction(STORE_NAME, "readwrite");
+        transaction.objectStore(STORE_NAME).put({ id, blob: file } satisfies StoredMedia);
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error || new Error("媒体保存失败"));
+        transaction.onabort = () => reject(transaction.error || new Error("媒体保存已取消"));
+      });
+      database.close();
+    } catch {
+      // IndexedDB is a local preview cache; Supabase Storage remains the source of truth.
+    }
+  }
+  const asset: ProfileMediaAsset = {
     id,
     name: file.name,
     mimeType: file.type || "application/octet-stream",
@@ -138,9 +153,18 @@ export async function storeMediaFile(file: File, kind: ProfileMediaKind, options
     narrativeBeats: [],
     ...metadata,
   };
+  if (guest) guestMedia.set(id, file);
+  else {
+    await saveMediaToCloud(asset, file).catch((error) => {
+      console.warn("Failed to upload Supabase media", error instanceof Error ? error.message : error);
+    });
+  }
+  return asset;
 }
 
 export async function getMediaBlob(id: string): Promise<Blob | null> {
+  if (isGuestSession()) return guestMedia.get(id) || null;
+  try {
   const database = await openMediaDatabase();
   const result = await new Promise<StoredMedia | undefined>((resolve, reject) => {
     const request = database.transaction(STORE_NAME, "readonly").objectStore(STORE_NAME).get(id);
@@ -148,10 +172,19 @@ export async function getMediaBlob(id: string): Promise<Blob | null> {
     request.onerror = () => reject(request.error || new Error("媒体读取失败"));
   });
   database.close();
-  return result?.blob || null;
+  if (result?.blob) return result.blob;
+  } catch {
+    // Fall through to Supabase Storage.
+  }
+  return downloadMediaFromCloud(id);
 }
 
 export async function deleteMediaFile(id: string): Promise<void> {
+  if (isGuestSession()) {
+    guestMedia.delete(id);
+    return;
+  }
+  try {
   const database = await openMediaDatabase();
   await new Promise<void>((resolve, reject) => {
     const transaction = database.transaction(STORE_NAME, "readwrite");
@@ -160,6 +193,76 @@ export async function deleteMediaFile(id: string): Promise<void> {
     transaction.onerror = () => reject(transaction.error || new Error("媒体删除失败"));
   });
   database.close();
+  } catch {
+    // Best effort local cache delete.
+  }
+  await deleteMediaFromCloud(id).catch((error) => {
+    console.warn("Failed to delete Supabase media", error instanceof Error ? error.message : error);
+  });
+}
+
+async function saveMediaToCloud(asset: ProfileMediaAsset, file: File): Promise<void> {
+  if (!supabase) return;
+  const { data: userData } = await supabase.auth.getUser();
+  const userId = userData.user?.id;
+  if (!userId) return;
+  const storagePath = `${userId}/${asset.kind}/${asset.id}-${safeFileName(file.name)}`;
+  const upload = await supabase.storage.from(BUCKET_NAME).upload(storagePath, file, {
+    contentType: file.type || "application/octet-stream",
+    upsert: true,
+  });
+  if (upload.error) throw upload.error;
+  const { error } = await supabase.from("media_assets").upsert({
+    id: asset.id,
+    user_id: userId,
+    file_name: asset.name,
+    storage_path: storagePath,
+    mime_type: asset.mimeType,
+    size_bytes: asset.size,
+    category: asset.kind,
+    metadata_json: {
+      purpose: asset.purpose,
+      projectId: asset.projectId ?? null,
+      experienceId: asset.experienceId ?? null,
+      comment: asset.comment,
+      durationInSeconds: asset.durationInSeconds ?? null,
+      width: asset.width ?? null,
+      height: asset.height ?? null,
+    },
+  });
+  if (error) throw error;
+}
+
+async function downloadMediaFromCloud(id: string): Promise<Blob | null> {
+  if (!supabase) return null;
+  const { data: userData } = await supabase.auth.getUser();
+  const userId = userData.user?.id;
+  if (!userId) return null;
+  const { data: row } = await supabase
+    .from("media_assets")
+    .select("storage_path")
+    .eq("id", id)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!row?.storage_path) return null;
+  const { data, error } = await supabase.storage.from(BUCKET_NAME).download(row.storage_path);
+  if (error || !data) return null;
+  return data;
+}
+
+async function deleteMediaFromCloud(id: string): Promise<void> {
+  if (!supabase) return;
+  const { data: userData } = await supabase.auth.getUser();
+  const userId = userData.user?.id;
+  if (!userId) return;
+  const { data: row } = await supabase
+    .from("media_assets")
+    .select("storage_path")
+    .eq("id", id)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (row?.storage_path) await supabase.storage.from(BUCKET_NAME).remove([row.storage_path]);
+  await supabase.from("media_assets").delete().eq("id", id).eq("user_id", userId);
 }
 
 function waitForSeek(video: HTMLVideoElement, time: number) {

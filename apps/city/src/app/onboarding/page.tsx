@@ -9,6 +9,7 @@ import {
   createEmptyProfile,
   createEmptyProject,
   loadProfile,
+  loadCloudProfile,
   normalizeProfile,
   saveProfile,
   type CreatorAward,
@@ -96,17 +97,18 @@ export default function OnboardingPage() {
       router.replace("/");
       return;
     }
-    const existing = loadProfile();
-    const baseProfile = existing || normalizeProfile({ ...createEmptyProfile(), name: session.displayName });
-    const refreshedProfile = {
-      ...baseProfile,
-      mediaAssets: baseProfile.mediaAssets.map((asset) => shouldRegenerateNarrative(asset.narrativeBeats)
-        ? { ...asset, analysisStatus: "draft" as const, narrativeBeats: buildLocalMediaNarrative(asset, baseProfile) }
-        : asset),
-    };
-    profileRef.current = refreshedProfile;
-    setProfile(refreshedProfile);
-    setHydrated(true);
+    void loadCloudProfile().then((existing) => {
+      const baseProfile = existing || loadProfile() || normalizeProfile({ ...createEmptyProfile(), name: session.displayName });
+      const refreshedProfile = {
+        ...baseProfile,
+        mediaAssets: baseProfile.mediaAssets.map((asset) => shouldRegenerateNarrative(asset.narrativeBeats)
+          ? { ...asset, analysisStatus: "draft" as const, narrativeBeats: buildLocalMediaNarrative(asset, baseProfile) }
+          : asset),
+      };
+      profileRef.current = refreshedProfile;
+      setProfile(refreshedProfile);
+      setHydrated(true);
+    });
   }, [router]);
 
   useEffect(() => {

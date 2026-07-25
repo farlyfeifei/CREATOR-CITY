@@ -24,8 +24,10 @@ import {
 import { AgentAvatar } from "@/components/AgentAvatar";
 import { ProfileWizard } from "@/components/ProfileWizard";
 import { profileToAgent, roundtableAgents, sampleProfile, sampleProfiles } from "@/data/agents";
+import { ensureCloudSessionFromUrl, isGuestMode } from "@/lib/auth";
 import { compileProfile } from "@/lib/profileCompiler";
 import { buildOriginalTurnSchedule, type ScheduledTurn } from "@/lib/turnSchedule";
+import { appendCloudMessages, createCloudDebate, deleteCloudProfile, loadCloudProfiles, recordCloudUsage, saveCloudProfile, updateCloudDebateRuntime } from "@/services/persistence";
 import { generateDiscussionVerdict, generatePhase, generateScheduledBatch } from "@/services/roundtable";
 import type {
   Agent,
@@ -73,6 +75,7 @@ export function App() {
   const sessionIdRef = useRef(0);
   const failedUserReplyRef = useRef<FailedUserReply | null>(null);
   const urlHydratedRef = useRef(false);
+  const debateIdRef = useRef<string | null>(null);
 
   const selectedAgents = useMemo(
     () => selectedIds.map((id) => allAgents.find((agent) => agent.id === id)).filter((agent): agent is Agent => Boolean(agent)),
@@ -81,6 +84,20 @@ export function App() {
   const turnCount = messages.filter((message) => message.scheduledIndex !== undefined).length;
   const activePhase = schedule[Math.max(0, turnCount - 1)]?.phase ?? null;
   const profileAgent = allAgents.find((agent) => agent.id === profileAgentId);
+
+  useEffect(() => {
+    void ensureCloudSessionFromUrl().then(() => loadCloudProfiles()).then((profiles) => {
+      if (!profiles.length) return;
+      setSavedProfiles((current) => {
+        const merged = [...current];
+        for (const profile of profiles) {
+          if (!merged.some((item) => item.id === profile.id)) merged.push(profile);
+        }
+        profileStorage().setItem(STORAGE_KEY, JSON.stringify(merged));
+        return merged;
+      });
+    });
+  }, []);
 
   useEffect(() => {
     if (urlHydratedRef.current) return;
@@ -115,7 +132,8 @@ export function App() {
     const profile = compileProfile(draft);
     const next = [...savedProfiles, profile];
     setSavedProfiles(next);
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    profileStorage().setItem(STORAGE_KEY, JSON.stringify(next));
+    void saveCloudProfile(profile);
     setSelectedIds((current) => [...current.filter((id) => id !== sampleProfile.id), profile.id].slice(0, 6));
     setReplyTargetId(profile.id);
     setWizardOpen(false);
@@ -124,11 +142,12 @@ export function App() {
   const removeProfile = (id: string) => {
     const next = savedProfiles.filter((profile) => profile.id !== id);
     setSavedProfiles(next);
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    profileStorage().setItem(STORAGE_KEY, JSON.stringify(next));
+    void deleteCloudProfile(id);
     setSelectedIds((current) => current.filter((value) => value !== id));
   };
 
-  const startChat = () => {
+  const startChat = async () => {
     const topic = topicDraft.trim();
     if (!topic || selectedAgents.length < 2 || selectedAgents.length > 6 || generationLockRef.current) return;
     const originalSchedule = buildOriginalTurnSchedule(selectedAgents);
@@ -141,6 +160,7 @@ export function App() {
       createdAt: new Date().toISOString(),
     };
     sessionIdRef.current += 1;
+    debateIdRef.current = null;
     generationLockRef.current = false;
     failedUserReplyRef.current = null;
     setActiveTopic(topic);
@@ -150,10 +170,17 @@ export function App() {
     setError("");
     setLoading(false);
     setLoadingAgentId("");
-    setAutoRunning(true);
+    setAutoRunning(false);
     setVerdict(null);
     setVerdictLoading(false);
     setView("chat");
+    debateIdRef.current = await createCloudDebate({
+      topic,
+      agents: selectedAgents,
+      runtime: {},
+      messages: [systemMessage],
+    });
+    setAutoRunning(true);
   };
 
   const nextTurns = useCallback(async () => {
@@ -175,9 +202,14 @@ export function App() {
         messages,
       });
       if (sessionIdRef.current !== sessionId) return;
-      setMessages((current) => [...current, ...output.messages]);
+      setMessages((current) => {
+        void appendCloudMessages(debateIdRef.current, output.messages, current.length);
+        return [...current, ...output.messages];
+      });
       setRuntime(output.runtime);
       setModel(output.model);
+      void updateCloudDebateRuntime(debateIdRef.current, output.runtime);
+      void recordCloudUsage({ debateId: debateIdRef.current, action: "roundtable_reply", model: output.model });
     } catch (reason) {
       if (sessionIdRef.current !== sessionId) return;
       setError(errorMessage(reason));
@@ -213,9 +245,15 @@ export function App() {
         },
       });
       if (sessionIdRef.current !== sessionId) return;
-      setMessages((current) => [...current, ...output.messages]);
-      setRuntime((current) => ({ ...current, ...output.runtime }));
+      setMessages((current) => {
+        void appendCloudMessages(debateIdRef.current, output.messages, current.length);
+        return [...current, ...output.messages];
+      });
+      const nextRuntime = { ...input.runtime, ...output.runtime };
+      setRuntime(nextRuntime);
       setModel(output.model);
+      void updateCloudDebateRuntime(debateIdRef.current, nextRuntime);
+      void recordCloudUsage({ debateId: debateIdRef.current, action: "roundtable_user_reply", model: output.model });
       failedUserReplyRef.current = null;
     } catch (reason) {
       if (sessionIdRef.current !== sessionId) return;
@@ -246,6 +284,7 @@ export function App() {
     };
     const nextMessages = [...messages, userMessage];
     setMessages(nextMessages);
+    void appendCloudMessages(debateIdRef.current, [userMessage], messages.length);
     setVerdict(null);
     setComposer("");
     const request: FailedUserReply = {
@@ -303,6 +342,7 @@ export function App() {
       if (sessionIdRef.current !== sessionId) return;
       setVerdict(result);
       if (result.model) setModel(result.model);
+      void recordCloudUsage({ debateId: debateIdRef.current, action: "discussion_verdict", model: result.model });
     } catch {
       if (sessionIdRef.current === sessionId) {
         await new Promise((resolve) => window.setTimeout(resolve, 900));
@@ -321,6 +361,7 @@ export function App() {
 
   const resetChat = () => {
     sessionIdRef.current += 1;
+    debateIdRef.current = null;
     generationLockRef.current = false;
     verdictLockRef.current = false;
     failedUserReplyRef.current = null;
@@ -646,11 +687,15 @@ function MemberList({ agents }: { agents: Agent[] }) {
 
 function loadProfiles(): PersonalAgentProfile[] {
   try {
-    const value = window.localStorage.getItem(STORAGE_KEY);
+    const value = profileStorage().getItem(STORAGE_KEY);
     return value ? JSON.parse(value) as PersonalAgentProfile[] : [];
   } catch {
     return [];
   }
+}
+
+function profileStorage(): Storage {
+  return isGuestMode() ? window.sessionStorage : window.localStorage;
 }
 
 function errorMessage(reason: unknown): string {

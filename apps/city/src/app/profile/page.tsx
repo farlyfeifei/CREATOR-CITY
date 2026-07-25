@@ -7,7 +7,7 @@ import { Player } from "@remotion/player";
 import { ArrowUpRight, Award, Building2, CalendarDays, Clapperboard, Code2, FileText, GitFork, Map, PencilLine, Sparkles } from "lucide-react";
 import { CreatorIntro, type CreatorIntroProps } from "@/remotion/CreatorIntro";
 import { buildCreatorStoryboard, getStoryboardDuration } from "@/remotion/storyboard";
-import { loadProfile, type UserProfile } from "@/features/profile";
+import { loadCloudProfile, loadProfile, type UserProfile } from "@/features/profile";
 import { resolveProfileMedia } from "@/features/mediaLibrary";
 
 export default function ProfilePage() {
@@ -17,12 +17,15 @@ export default function ProfilePage() {
   useEffect(() => {
     let revoke: (() => void) | undefined;
     let active = true;
-    const currentProfile = loadProfile();
-    if (!currentProfile) {
-      router.replace("/onboarding");
-      return;
-    }
-    void resolveProfileMedia(currentProfile).then((resolved) => {
+    void loadCloudProfile().then((currentProfile) => {
+      const fallbackProfile = currentProfile || loadProfile();
+      if (!fallbackProfile) {
+        router.replace("/onboarding");
+        return null;
+      }
+      return resolveProfileMedia(fallbackProfile);
+    }).then((resolved) => {
+      if (!resolved) return;
       if (!active) { resolved.revoke(); return; }
       revoke = resolved.revoke;
       setProfile(resolved.profile);

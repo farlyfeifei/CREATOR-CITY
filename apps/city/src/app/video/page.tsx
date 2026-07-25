@@ -7,7 +7,7 @@ import { Player, type PlayerRef } from "@remotion/player";
 import { ArrowDown, ArrowUp, CheckCircle2, Clapperboard, Download, FilePenLine, Layers3, LoaderCircle, Map, RotateCcw, Sparkles, Square } from "lucide-react";
 import { CreatorIntro, CreatorIntroSchema, type CreatorIntroProps } from "@/remotion/CreatorIntro";
 import { buildCreatorStoryboard, getStoryboardDuration, type CreatorStoryboard } from "@/remotion/storyboard";
-import { loadProfile, type UserProfile } from "@/features/profile";
+import { loadCloudProfile, loadProfile, type UserProfile } from "@/features/profile";
 import { resolveProfileMedia } from "@/features/mediaLibrary";
 import { LightRays } from "@/components/motion/LightRays";
 import { loadSession } from "@/features/session";
@@ -57,12 +57,15 @@ export default function VideoPage() {
       router.replace("/");
       return;
     }
-    const baseProfile = loadProfile();
-    if (!baseProfile) {
-      router.replace("/onboarding");
-      return;
-    }
-    void resolveProfileMedia(baseProfile).then((resolved) => {
+    void loadCloudProfile().then((cloudProfile) => {
+      const baseProfile = cloudProfile || loadProfile();
+      if (!baseProfile) {
+        router.replace("/onboarding");
+        return null;
+      }
+      return resolveProfileMedia(baseProfile);
+    }).then((resolved) => {
+      if (!resolved) return;
       if (!active) { resolved.revoke(); return; }
       revoke = resolved.revoke;
       const nextStoryboard = buildCreatorStoryboard(resolved.profile);
