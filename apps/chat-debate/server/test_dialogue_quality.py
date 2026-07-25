@@ -113,6 +113,21 @@ class DialogueQualityTests(unittest.TestCase):
                 },
             )
 
+    def test_allows_shared_fact_premise_with_new_rebuttal_conclusion(self) -> None:
+        _validate_dialogue_quality(
+            result("我理解你的担心，不过必须先核对时间地点和完整视频，再讨论责任比例。"),
+            {
+                **request([
+                    {
+                        "role": "expert",
+                        "expert_id": "agent-1",
+                        "content": "这件事不能凭感觉，必须先核对时间地点和完整视频。",
+                    },
+                ]),
+                "phase": "rebuttal",
+            },
+        )
+
 
 class TimeoutClient:
     async def __aenter__(self) -> TimeoutClient:

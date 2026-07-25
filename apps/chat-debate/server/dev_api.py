@@ -131,6 +131,8 @@ def _validate_dialogue_quality(result: dict[str, Any], request_payload: dict[str
             continue
         speaker_id = str(requested.get("expert_id") or "").strip()
         speaker_name = str(requested.get("expert_name") or "").strip()
+        same_speaker_clause_length = 15 if request_payload.get("phase") == "rebuttal" else 12
+        same_speaker_clause_similarity = 0.80 if request_payload.get("phase") == "rebuttal" else 0.70
 
         if any(fragment in text for fragment in CONTROL_TEXT_FRAGMENTS):
             raise DialogueQualityError("候选发言复述了后台续聊指令。", [text])
@@ -153,7 +155,12 @@ def _validate_dialogue_quality(result: dict[str, Any], request_payload: dict[str
                 and SequenceMatcher(None, comparison, previous_comparison).ratio() >= 0.90
             ):
                 raise DialogueQualityError("候选发言与该角色的历史发言高度近似，没有推进讨论。", [text, previous])
-            if _repeats_substantial_clause(text, previous):
+            if _repeats_substantial_clause(
+                text,
+                previous,
+                min_clause_length=same_speaker_clause_length,
+                similarity_ratio=same_speaker_clause_similarity,
+            ):
                 raise DialogueQualityError("候选发言复用了该角色已经说过的关键句或论证骨架。", [text, previous])
 
         for previous_speaker_id, previous in history_entries:
