@@ -95,6 +95,9 @@ const aliasToKey = new Map<string, keyof ProfileDraft>();
 for (const definition of importFields) {
   for (const alias of definition.aliases) aliasToKey.set(normalizeLabel(alias), definition.key);
 }
+for (const step of profileQuestionnaireSteps) {
+  for (const field of step.fields) aliasToKey.set(normalizeLabel(field.label), field.key);
+}
 
 const questionnaireFieldByKey = new Map(
   profileQuestionnaireSteps.flatMap((step, stepIndex) => step.fields.map((field) => [field.key, {
@@ -133,7 +136,7 @@ export function parseProfileQuestionnaire(value: string): ProfileImportResult {
       if (key) {
         flush();
         activeKey = key;
-        const inlineAnswer = candidate.slice(separatorIndex + 1).trim();
+        const inlineAnswer = stripMarkdownAnswer(candidate.slice(separatorIndex + 1));
         buffer = inlineAnswer ? [inlineAnswer] : [];
         continue;
       }
@@ -142,27 +145,40 @@ export function parseProfileQuestionnaire(value: string): ProfileImportResult {
   }
   flush();
 
+  return {
+    draft,
+    recognizedFields: recognized.size,
+    filledFields: [...recognized].filter((key) => draft[key].trim()).length,
+    missingRequired: getMissingRequiredProfileFields(draft),
+  };
+}
+
+export function getMissingRequiredProfileFields(draft: ProfileDraft): ProfileImportMissingField[] {
   const missingRequired: ProfileImportMissingField[] = [];
   for (const [key, field] of questionnaireFieldByKey) {
     if (field.required && !draft[key].trim()) {
       missingRequired.push({ key, label: field.label, stepIndex: field.stepIndex });
     }
   }
-
-  return {
-    draft,
-    recognizedFields: recognized.size,
-    filledFields: [...recognized].filter((key) => draft[key].trim()).length,
-    missingRequired,
-  };
+  return missingRequired;
 }
 
 function normalizeLabel(value: string): string {
   return stripMarkdownPrefix(value)
     .replace(/^\d+\s*[.、]\s*/u, "")
+    .replace(/[*_~`]/gu, "")
     .replace(/[\s，,。；;？?]/gu, "")
     .replace(/[/／]/gu, "/")
     .toLowerCase();
+}
+
+function stripMarkdownAnswer(value: string): string {
+  const trimmed = value.trim();
+  const labelRemainder = trimmed.match(/^(?:\*\*|__|~~|`)\s+([\s\S]*)$/u);
+  if (labelRemainder) return labelRemainder[1].trim();
+
+  const wrapped = trimmed.match(/^(\*\*|__|~~|`|\*|_)([\s\S]+)\1$/u);
+  return wrapped ? wrapped[2].trim() : trimmed;
 }
 
 function stripMarkdownPrefix(value: string): string {

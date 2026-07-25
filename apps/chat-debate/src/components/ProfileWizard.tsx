@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { ArrowLeft, ArrowRight, Check, ClipboardPaste, ListChecks, ScanText, ShieldCheck, X } from "lucide-react";
 import { profileQuestionnaireSteps } from "@/data/profileQuestionnaire";
 import { emptyProfileDraft } from "@/lib/profileCompiler";
-import { parseProfileQuestionnaire, type ProfileImportResult } from "@/lib/profileImport";
+import { getMissingRequiredProfileFields, parseProfileQuestionnaire, type ProfileImportResult } from "@/lib/profileImport";
 import type { ProfileDraft } from "@/types";
 
 type WizardMode = "choose" | "paste" | "form";
@@ -26,6 +26,7 @@ export function ProfileWizard({
       .every((item) => draft[item.key].trim()),
     [currentStep, draft],
   );
+  const missingRequired = useMemo(() => getMissingRequiredProfileFields(draft), [draft]);
 
   const field = (key: keyof ProfileDraft, value: string) => {
     setDraft((current) => ({ ...current, [key]: value }));
@@ -38,7 +39,7 @@ export function ProfileWizard({
   };
 
   const inspectImportedDraft = () => {
-    setStep(importResult?.missingRequired[0]?.stepIndex ?? 0);
+    setStep(missingRequired[0]?.stepIndex ?? 0);
     setMode("form");
   };
 
@@ -132,7 +133,7 @@ export function ProfileWizard({
                   placeholder="# 1. 基本身份&#10;显示名称：&#10;一句话介绍自己：&#10;……&#10;&#10;# 12. Agent 权限&#10;可以公开的信息：&#10;……"
                 />
               </label>
-              {importResult && <ImportResultPanel result={importResult} />}
+              {importResult && <ImportResultPanel result={importResult} missingRequired={missingRequired} />}
             </div>
             <footer className="sheet-footer">
               <button className="secondary-button" onClick={() => setMode("choose")}><ArrowLeft size={17} />返回选择</button>
@@ -140,7 +141,7 @@ export function ProfileWizard({
                 {importResult ? (
                   <>
                     <button className="secondary-button" onClick={inspectImportedDraft}><ScanText size={16} />逐项检查</button>
-                    <button className="primary-button" disabled={importResult.missingRequired.length > 0} onClick={() => onSave(draft)}><Check size={17} />生成 Agent</button>
+                    <button className="primary-button" disabled={missingRequired.length > 0} onClick={() => onSave(draft)}><Check size={17} />生成 Agent</button>
                   </>
                 ) : (
                   <button className="primary-button" disabled={!pastedText.trim()} onClick={parsePaste}><ScanText size={17} />识别内容</button>
@@ -189,7 +190,7 @@ export function ProfileWizard({
               {step < profileQuestionnaireSteps.length - 1 ? (
                 <button className="primary-button" disabled={!canContinue} onClick={() => setStep((value) => value + 1)}>下一步<ArrowRight size={17} /></button>
               ) : (
-                <button className="primary-button" disabled={!canContinue} onClick={() => onSave(draft)}><Check size={17} />生成 Agent</button>
+                <button className="primary-button" disabled={!canContinue || missingRequired.length > 0} onClick={() => onSave(draft)}><Check size={17} />生成 Agent</button>
               )}
             </footer>
           </>
@@ -199,10 +200,16 @@ export function ProfileWizard({
   );
 }
 
-function ImportResultPanel({ result }: { result: ProfileImportResult }) {
+function ImportResultPanel({
+  result,
+  missingRequired,
+}: {
+  result: ProfileImportResult;
+  missingRequired: ProfileImportResult["missingRequired"];
+}) {
   const hasRecognizedContent = result.filledFields > 0;
   return (
-    <div className={`import-result ${result.missingRequired.length ? "has-missing" : "is-ready"}`}>
+    <div className={`import-result ${missingRequired.length ? "has-missing" : "is-ready"}`}>
       <div className="import-result-heading">
         <span>{hasRecognizedContent ? <Check size={16} /> : <ScanText size={16} />}</span>
         <div>
@@ -210,10 +217,10 @@ function ImportResultPanel({ result }: { result: ProfileImportResult }) {
           <p>{result.recognizedFields} 个问题标题被识别，并已转换成现有的人物画像输入格式。</p>
         </div>
       </div>
-      {result.missingRequired.length > 0 ? (
+      {missingRequired.length > 0 ? (
         <div className="import-missing">
-          <strong>还需要补充 {result.missingRequired.length} 个必填项</strong>
-          <p>{result.missingRequired.slice(0, 8).map((item) => item.label).join("、")}{result.missingRequired.length > 8 ? "等" : ""}</p>
+          <strong>还需要补充 {missingRequired.length} 个必填项</strong>
+          <p>{missingRequired.slice(0, 8).map((item) => item.label).join("、")}{missingRequired.length > 8 ? "等" : ""}</p>
         </div>
       ) : (
         <p className="import-ready-text">必填内容完整，可以直接生成，也可以先逐项检查。</p>
