@@ -32,8 +32,8 @@ export function CityPage() {
   const facilityFor = (object: CityInteractable): SceneObjectDef | null => {
     if (object.kind === "facility") return object;
     const routeMap: Record<string, SceneObjectId> = {
-      "/video": "homepage",
-      "/profile": "studio",
+      "/video": "studio",
+      "/profile": "homepage",
       "/intelligence": "bulletin",
       "/skills": "skillgarden",
       "/projects": "hackathon",

@@ -55,8 +55,8 @@ import { buildCreatorStoryboard, getStoryboardDuration } from "@/remotion/storyb
 type Props = { facility: SceneObjectDef; onClose: () => void };
 
 const facilityMeta: Record<SceneObjectId, { icon: string; eyebrow: string; status: string; mark: string; ticker: string }> = {
-  studio: { icon: "/pixel-icons/upload-file.png", eyebrow: "STATIC PROFILE ARCHIVE", status: "静态档案可查看", mark: "档", ticker: "PROFILE · EXPERIENCE · PROJECT · EVIDENCE · RESUME" },
-  homepage: { icon: "/pixel-icons/play.png", eyebrow: "REMOTION PERSONAL HOMEPAGE", status: "主页影片可播放", mark: "映", ticker: "PROFILE · STORY · MOTION · MEDIA · HOMEPAGE" },
+  studio: { icon: "/pixel-icons/play.png", eyebrow: "REMOTION PROFILE STUDIO", status: "视频界面可打开", mark: "映", ticker: "PROFILE · STORY · MOTION · MEDIA · VIDEO" },
+  homepage: { icon: "/pixel-icons/upload-file.png", eyebrow: "STATIC PERSONAL HOMEPAGE", status: "静态档案可查看", mark: "档", ticker: "PROFILE · EXPERIENCE · PROJECT · EVIDENCE · HOMEPAGE" },
   bulletin: { icon: "/pixel-icons/newspaper.png", eyebrow: "LIVE SIGNAL WALL", status: "公开源已接入", mark: "报", ticker: "AI · CODING · AGENT · GITHUB · LIVE SIGNAL" },
   leaderboard: { icon: "/pixel-icons/chart-up.png", eyebrow: "MODEL ARENA", status: "OpenRouter 目录", mark: "榜", ticker: "REASONING · CODING · PRICE · SPEED · CONTEXT" },
   skillgarden: { icon: "/pixel-icons/plant-pot.png", eyebrow: "WORKFLOW GARDEN", status: "安装入口可用", mark: "技", ticker: "SKILL · WORKFLOW · TOOL · INSTALL · PRACTICE" },
