@@ -74,7 +74,7 @@ class Settings(BaseSettings):
     max_audio_segments: int = 12
     global_ai_concurrency: int = 3
     per_user_ai_concurrency: int = 1
-    ai_request_timeout_seconds: int = 120
+    ai_request_timeout_seconds: int = 60
     stale_reservation_minutes: int = 15
     recovery_loop_seconds: int = 60
     rate_limit_retention_hours: int = 24

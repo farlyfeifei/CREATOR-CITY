@@ -89,12 +89,17 @@ class PixelAIProvider:
             headers["Authorization"] = f"Bearer {api_key}"
         else:
             headers["api-key"] = api_key
-        async with httpx.AsyncClient(timeout=self.settings.ai_request_timeout_seconds) as client:
-            response = await client.post(
-                url,
-                headers=headers,
-                json=body,
-            )
+        try:
+            async with httpx.AsyncClient(timeout=self.settings.ai_request_timeout_seconds) as client:
+                response = await client.post(
+                    url,
+                    headers=headers,
+                    json=body,
+                )
+        except httpx.TimeoutException as exc:
+            raise APIError(504, "upstream_timeout", "AI 服务响应超时，请稍后重试。") from exc
+        except httpx.RequestError as exc:
+            raise APIError(502, "upstream_connection_error", "无法连接 AI 服务，请稍后重试。") from exc
         if response.status_code < 200 or response.status_code >= 300:
             self._raise_upstream_error(response.status_code, operation="AI")
         try:

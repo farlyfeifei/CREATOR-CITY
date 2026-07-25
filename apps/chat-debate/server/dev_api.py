@@ -23,7 +23,7 @@ from server.roundtable_core.errors import APIError
 HOST = "127.0.0.1"
 PORT = 8811
 MAX_BODY_BYTES = 2_000_000
-VALIDATION_RETRY_ATTEMPTS = 3
+VALIDATION_RETRY_ATTEMPTS = 2
 CONTROL_TEXT_FRAGMENTS = ("请继续围绕议题自然交流", "继续圆桌讨论")
 NARRATION_PATTERNS = (
     re.compile(r"^[^，。！？\n]{1,24}(?:对着|看着|转向|冲着|朝着)[^，。！？\n]{1,24}(?:说|讲|问|回应|表示)\s*[：:]"),
@@ -138,7 +138,7 @@ def _validate_dialogue_quality(result: dict[str, Any], request_payload: dict[str
                 raise DialogueQualityError("候选发言与该角色的历史发言完全重复。", [text, previous])
             if (
                 min(len(comparison), len(previous_comparison)) >= 24
-                and SequenceMatcher(None, comparison, previous_comparison).ratio() >= 0.84
+                and SequenceMatcher(None, comparison, previous_comparison).ratio() >= 0.90
             ):
                 raise DialogueQualityError("候选发言与该角色的历史发言高度近似，没有推进讨论。", [text, previous])
             if _repeats_substantial_clause(text, previous):
@@ -154,10 +154,13 @@ def _validate_dialogue_quality(result: dict[str, Any], request_payload: dict[str
                 raise DialogueQualityError("候选发言完整复述了另一位角色的历史发言。", [text, previous])
             if (
                 min(len(comparison), len(previous_comparison)) >= 24
-                and SequenceMatcher(None, comparison, previous_comparison).ratio() >= 0.88
+                and SequenceMatcher(None, comparison, previous_comparison).ratio() >= 0.93
             ):
                 raise DialogueQualityError("候选发言与另一位角色的历史发言高度近似。", [text, previous])
-            if request_payload.get("phase") == "stance" and _repeats_substantial_clause(text, previous):
+            if (
+                request_payload.get("phase") == "stance"
+                and _repeats_substantial_clause(text, previous, min_clause_length=16, similarity_ratio=0.82)
+            ):
                 raise DialogueQualityError("候选开场复用了另一位角色已经说过的关键句。", [text, previous])
 
 
@@ -171,7 +174,13 @@ def _comparison_text(value: str) -> str:
     return re.sub(r"[^0-9A-Za-z\u4e00-\u9fff]+", "", value).casefold()
 
 
-def _repeats_substantial_clause(current: str, previous: str) -> bool:
+def _repeats_substantial_clause(
+    current: str,
+    previous: str,
+    *,
+    min_clause_length: int = 12,
+    similarity_ratio: float = 0.70,
+) -> bool:
     current_text = _comparison_text(current)
     previous_text = _comparison_text(previous)
     if not current_text or not previous_text:
@@ -190,13 +199,13 @@ def _repeats_substantial_clause(current: str, previous: str) -> bool:
         for previous_clause in previous_clauses:
             matcher = SequenceMatcher(None, current_clause, previous_clause)
             longest = matcher.find_longest_match().size
-            if current_clause == previous_clause and (
+            if len(current_clause) >= min_clause_length and current_clause == previous_clause and (
                 len(current_clause) / max(1, min(len(current_text), len(previous_text))) >= 0.2
             ):
                 return True
             if (
-                longest >= 10
-                and longest / max(1, min(len(current_clause), len(previous_clause))) >= 0.55
+                longest >= min_clause_length
+                and longest / max(1, min(len(current_clause), len(previous_clause))) >= similarity_ratio
             ):
                 return True
     return False
@@ -476,12 +485,15 @@ class Handler(BaseHTTPRequestHandler):
 
     def _send(self, status: int, payload: dict[str, Any]) -> None:
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
-        self.send_response(status)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Content-Length", str(len(body)))
-        self.send_header("Cache-Control", "no-store")
-        self.end_headers()
-        self.wfile.write(body)
+        try:
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(body)
+        except (BrokenPipeError, ConnectionResetError):
+            return
 
 
 if __name__ == "__main__":

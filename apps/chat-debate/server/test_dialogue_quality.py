@@ -1,8 +1,14 @@
 from __future__ import annotations
 
 import unittest
+from unittest.mock import patch
+
+import httpx
 
 from server.dev_api import DialogueQualityError, _validate_dialogue_quality
+from server.roundtable_core.ai_provider import PixelAIProvider
+from server.roundtable_core.config import Settings
+from server.roundtable_core.errors import APIError
 
 
 def request(history: list[dict[str, str]] | None = None) -> dict:
@@ -58,16 +64,31 @@ class DialogueQualityTests(unittest.TestCase):
             ]),
         )
 
-    def test_rejects_reused_opening_clause_from_other_speaker(self) -> None:
+    def test_allows_shared_short_clause_from_other_speaker(self) -> None:
+        _validate_dialogue_quality(
+            result("碰瓷的人哪会跟你讲道理？关键是谁先怕、谁先软。"),
+            {
+                **request([
+                    {
+                        "role": "expert",
+                        "expert_id": "agent-2",
+                        "content": "光讲定义没有用，关键是谁先怕、谁先软。",
+                    },
+                ]),
+                "phase": "stance",
+            },
+        )
+
+    def test_rejects_reused_long_clause_from_other_speaker(self) -> None:
         with self.assertRaises(DialogueQualityError):
             _validate_dialogue_quality(
-                result("碰瓷的人哪会跟你讲道理？关键是谁先怕、谁先软。"),
+                result("先稳住现场，先确认伤者状态、固定目击者、同步报警，再讨论责任。"),
                 {
                     **request([
                         {
                             "role": "expert",
                             "expert_id": "agent-2",
-                            "content": "光讲定义没有用，关键是谁先怕、谁先软。",
+                            "content": "不要急着争论，先确认伤者状态、固定目击者、同步报警，再核对车辆位置。",
                         },
                     ]),
                     "phase": "stance",
@@ -91,6 +112,39 @@ class DialogueQualityTests(unittest.TestCase):
                     "phase": "rebuttal",
                 },
             )
+
+
+class TimeoutClient:
+    async def __aenter__(self) -> TimeoutClient:
+        return self
+
+    async def __aexit__(self, *_args: object) -> None:
+        return None
+
+    async def post(self, *_args: object, **_kwargs: object) -> None:
+        request = httpx.Request("POST", "https://api.example.test/chat/completions")
+        raise httpx.ReadTimeout("timed out", request=request)
+
+
+class ProviderErrorTests(unittest.IsolatedAsyncioTestCase):
+    async def test_maps_http_timeout_to_api_error(self) -> None:
+        provider = PixelAIProvider(Settings(
+            ai_chat_provider="opencode_go",
+            opencode_go_api_key="test-key",
+            opencode_go_chat_url="https://api.example.test",
+            opencode_go_chat_model="test-model",
+        ))
+        with patch("server.roundtable_core.ai_provider.httpx.AsyncClient", return_value=TimeoutClient()):
+            with self.assertRaises(APIError) as captured:
+                await provider._chat(
+                    system_prompt="system",
+                    user_prompt="user",
+                    max_tokens=32,
+                    temperature=0.2,
+                )
+
+        self.assertEqual(captured.exception.status_code, 504)
+        self.assertEqual(captured.exception.code, "upstream_timeout")
 
 
 if __name__ == "__main__":

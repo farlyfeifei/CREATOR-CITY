@@ -43,7 +43,7 @@ interface ErrorPayload {
   error?: { code?: string; message?: string };
 }
 
-const VALIDATION_RETRY_DELAY_MS = 450;
+const REPLY_REQUEST_TIMEOUT_MS = 135_000;
 
 export interface GenerateInput {
   topic: string;
@@ -285,27 +285,40 @@ async function postReply(input: {
     request,
     profiles: input.allAgents.flatMap((agent) => agent.profile ? [agent.profile] : []),
   });
-  while (true) {
-    const response = await fetch("/api/chat/reply", {
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), REPLY_REQUEST_TIMEOUT_MS);
+  let response: Response;
+  try {
+    response = await fetch("/api/chat/reply", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body,
+      signal: controller.signal,
     });
-    const payload = await response.json().catch(() => ({})) as ReplyResponse & ErrorPayload;
-    if (response.ok) return payload;
-    if (payload.error?.code === "upstream_response_invalid") {
-      await delay(VALIDATION_RETRY_DELAY_MS);
-      continue;
+  } catch (reason) {
+    if (reason instanceof Error && reason.name === "AbortError") {
+      throw new Error("本次生成超时，请重试。之前的对话不会丢失。");
     }
-    if (payload.error?.code === "upstream_ai_error" || payload.error?.code === "upstream_ai_rate_limited") {
-      throw new Error("模型服务暂时不可用，之前的对话不会丢失。");
-    }
-    throw new Error(payload.error?.message || `对话服务异常（HTTP ${response.status}）`);
+    throw new Error("对话连接中断，请重试。之前的对话不会丢失。");
+  } finally {
+    window.clearTimeout(timeout);
   }
-}
-
-function delay(milliseconds: number): Promise<void> {
-  return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+  const payload = await response.json().catch(() => ({})) as ReplyResponse & ErrorPayload;
+  if (response.ok) return payload;
+  if (payload.error?.code === "upstream_response_invalid") {
+    throw new Error("AI 回复未通过格式检查，请重试。之前的对话不会丢失。");
+  }
+  if (payload.error?.code === "upstream_timeout") {
+    throw new Error("模型响应超时，请重试。之前的对话不会丢失。");
+  }
+  if (
+    payload.error?.code === "upstream_ai_error"
+    || payload.error?.code === "upstream_ai_rate_limited"
+    || payload.error?.code === "upstream_connection_error"
+  ) {
+    throw new Error("模型服务暂时不可用，之前的对话不会丢失。");
+  }
+  throw new Error(payload.error?.message || `对话服务异常（HTTP ${response.status}）`);
 }
 
 function defaultStance(index: number): Stance {

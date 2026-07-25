@@ -384,7 +384,7 @@ export function App() {
     <div className="app-viewport">
       <div className="app-shell">
         <aside className="rail">
-          <img src="/assets/brand/app-icon.png" className="brand-mark" alt="Agent 群聊" />
+          <img src={`${import.meta.env.BASE_URL}assets/brand/app-icon.png`} className="brand-mark" alt="Agent 群聊" />
           <button className="rail-button is-active" title="群聊"><MessageCircleMore size={21} /></button>
           <button className="rail-button" title="创建个人 Agent" onClick={() => setWizardOpen(true)}><UserRoundPlus size={21} /></button>
           <span className="rail-spacer" />

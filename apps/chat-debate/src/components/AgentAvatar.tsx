@@ -15,7 +15,7 @@ export function AgentAvatar({
   if (agent.avatarPrefix) {
     return (
       <div className={`agent-avatar ${speaking ? "is-speaking" : ""}`} style={{ width: size, height: size, background: agent.accent }}>
-        <img src={`/assets/avatars/${agent.avatarPrefix}${state}.png`} alt={agent.name} />
+        <img src={`${import.meta.env.BASE_URL}assets/avatars/${agent.avatarPrefix}${state}.png`} alt={agent.name} />
       </div>
     );
   }
