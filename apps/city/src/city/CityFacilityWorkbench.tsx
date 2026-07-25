@@ -60,7 +60,7 @@ const facilityMeta: Record<SceneObjectId, { icon: string; eyebrow: string; statu
   skillgarden: { icon: "/pixel-icons/plant-pot.png", eyebrow: "WORKFLOW GARDEN", status: "安装入口可用", mark: "技", ticker: "SKILL · WORKFLOW · TOOL · INSTALL · PRACTICE" },
   "table-dev": { icon: "/pixel-icons/terminal.png", eyebrow: "BUILD & TEST DESK", status: "悬赏工作台在线", mark: "验", ticker: "BUILD · TEST · REWARD · EVIDENCE · REVIEW" },
   "table-social": { icon: "/pixel-icons/handshake-trim.png", eyebrow: "CREATOR MATCH", status: "匹配条件可编辑", mark: "遇", ticker: "PROFILE · EVIDENCE · MATCH · INVITE · MEET" },
-  agentroundtable: { icon: "/pixel-icons/robot.png", eyebrow: "AGENT ROUND TABLE", status: "接入层已预留", mark: "议", ticker: "AGENT · CAPABILITY · BOUNDARY · HANDOFF · STATUS" },
+  agentroundtable: { icon: "/pixel-icons/robot.png", eyebrow: "CHAT DEBATE HALL", status: "辩论群聊已接入", mark: "议", ticker: "AGENT · TOPIC · ARGUMENT · EVIDENCE · VERDICT" },
   hackathon: { icon: "/pixel-icons/team-trim.png", eyebrow: "HACKATHON HUB", status: "官方报名源在线", mark: "赛", ticker: "UPCOMING · REGISTER · BUILD · SHIP · DEMO DAY" },
   agenthub: { icon: "/pixel-icons/play.png", eyebrow: "CREATOR FILM ARCHIVE", status: "Remotion 播放器在线", mark: "映", ticker: "CREATOR · FILM · PROJECT · STORY · SIGNAL" },
 };

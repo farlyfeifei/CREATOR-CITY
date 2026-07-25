@@ -299,6 +299,20 @@ body {
   .gate-scene, .cinematic-door, .gate-focus, .gate-status { transition: none !important; }
 }
 
+.city-debate-dock { display: flex; max-width: min(660px, calc(100vw - 320px)); align-items: center; gap: 12px; border: 3px solid #17241f; background: rgba(255,249,223,.96); padding: 8px 10px; box-shadow: 5px 5px 0 rgba(23,36,31,.25); color: #17241f; }
+.city-debate-dock > div { display: grid; min-width: 82px; }
+.city-debate-dock small { color: #8d302a; font: 900 8px/1.2 "Cascadia Mono", Consolas, monospace; letter-spacing: .08em; }
+.city-debate-dock strong { font-size: 12px; }
+.city-debate-dock ul { display: flex; min-width: 0; flex: 1; gap: 6px; overflow: auto; list-style: none; }
+.city-debate-dock li { display: flex; flex: none; align-items: center; gap: 3px; border: 1px solid #236b5b; background: #dff5f2; padding: 5px 7px; font-size: 11px; font-weight: 800; white-space: nowrap; }
+.city-debate-dock button { flex: none; border: 2px solid #17241f; background: #d94b3f; padding: 7px 10px; color: #fff9df; font-size: 11px; font-weight: 900; }
+.city-debate-dock button:disabled { cursor: not-allowed; opacity: .45; }
+
+@media (max-width: 760px) {
+  .city-debate-dock { left: 12px; right: 12px; top: 76px; max-width: none; transform: none; }
+  .city-debate-dock > div { display: none; }
+}
+
 /* Creator ingest console */
 .ingest-page { overflow-x: hidden; background: #ecefea; }
 .ingest-page::before { inset: 0 0 auto; height: 430px; background-color: #101615; background-image: linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px), repeating-linear-gradient(112deg, transparent 0 118px, rgba(215,75,62,.045) 118px 120px); background-size: 54px 54px, 54px 54px, auto; }
@@ -1287,7 +1301,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .city-studio-actions a { display: inline-flex; min-height: 46px; align-items: center; justify-content: center; gap: 8px; border: 2px solid #e9cf80; background: transparent; color: #f5e7b8; padding: 9px 17px; font-size: 11px; font-weight: 900; }
 .city-studio-actions a.primary { border-color: #18231f; background: #efc85f; box-shadow: 5px 5px 0 #a73c34; color: #18231f; }
 
-/* Agent roundtable is a visual connection board only; communication remains a separate module. */
+/* Chat Debate Hall is a visual connection board; communication remains in the original chat module. */
 .city-workbench-agentroundtable .city-workbench-body { background: #dfe9e4; }
 .city-agent-roundtable-bench { display: grid; min-height: 500px; grid-template-columns: minmax(0,1fr) 320px; gap: 18px; }
 .city-agent-orbit-board { position: relative; min-height: 500px; overflow: hidden; border: 3px solid #18231f; background: #17352e; box-shadow: 7px 7px 0 #b58b42; }

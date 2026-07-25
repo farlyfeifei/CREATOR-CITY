@@ -76,7 +76,7 @@ export const initialDevTasks: DevTask[] = [
 
 export const creatorMatches = [
   { name: "星辰", handle: "xingchenyd", title: "数据分析 × AI 产品 × 商业分析", offers: ["产品叙事", "数据分析", "Remotion"], seeks: ["Agent 工程", "交互设计"], projects: ["Creator City", "ColorBook", "Scrap Loop"], match: 96, reason: "你们都在做创作者工具；星辰的产品与叙事能力可补足 Agent 工程。" },
-  { name: "qybaihe", handle: "qybaihe", title: "AI 视频与跨端产品构建者", offers: ["Remotion", "FFmpeg", "SwiftUI"], seeks: ["AI 产品", "多模态工作流"], projects: ["MoonCut", "Roundtable"], match: 92, reason: "视频工作流与 Creator City 的个人主页生成链路高度相关。" },
+  { name: "qybaihe", handle: "qybaihe", title: "AI 视频与跨端产品构建者", offers: ["Remotion", "FFmpeg", "SwiftUI"], seeks: ["AI 产品", "多模态工作流"], projects: ["MoonCut", "Chat Debate"], match: 92, reason: "视频工作流与 Creator City 的个人主页生成链路高度相关。" },
   { name: "browser-use", handle: "browser-use", title: "Browser agent open-source team", offers: ["Browser Automation", "Python", "Agent"], seeks: ["评测", "生态案例"], projects: ["browser-use"], match: 85, reason: "适合作为浏览器 Agent 工程与可靠执行的公开案例连接。" },
   { name: "OpenHands", handle: "OpenHands", title: "AI-driven development community", offers: ["Agent Runtime", "Developer Tools"], seeks: ["开源贡献", "真实任务"], projects: ["OpenHands"], match: 82, reason: "开发测试桌上的任务可以成为真实 Agent 能力评测样本。" },
 ];

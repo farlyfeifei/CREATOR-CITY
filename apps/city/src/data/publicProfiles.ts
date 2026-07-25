@@ -11,7 +11,7 @@ export const publicProfiles: UserProfile[] = [
     title: "跨端 AI 视频与像素讨论产品构建者",
     githubUsername: "qybaihe",
     bio: "从公开仓库看，持续探索 AI 视频工作台、跨端编辑链路和角色化讨论产品。",
-    narrative: "MoonCut 连接 Web、Desktop、iOS、字幕、本地编辑与 Remotion/FFmpeg 渲染；Roundtable 则将多视角讨论放进像素空间。以下信息均来自公开 GitHub 仓库。",
+    narrative: "MoonCut 连接 Web、Desktop、iOS、字幕、本地编辑与 Remotion/FFmpeg 渲染；Chat Debate 则将多视角讨论放进像素城市与微信式群聊。以下信息均来自公开 GitHub 仓库。",
     lookingFor: "AI 视频、跨端产品、Remotion 与新型讨论界面。",
     skills: [
       { name: "TypeScript", level: 88 },
@@ -20,7 +20,7 @@ export const publicProfiles: UserProfile[] = [
       { name: "Product Prototyping", level: 89 },
     ],
     metrics: [
-      { id: "repo", label: "展厅收录仓库", value: "2", context: "MoonCut + Roundtable" },
+      { id: "repo", label: "展厅收录仓库", value: "2", context: "MoonCut + Chat Debate" },
       { id: "platform", label: "产品端", value: "Web / Desktop / iOS", context: "公开仓库架构" },
     ],
     experiences: [],
@@ -29,7 +29,7 @@ export const publicProfiles: UserProfile[] = [
     papers: [],
     projects: [
       { ...base.projects.find((project) => project.id === "reference-mooncut")!, id: "qybaihe-mooncut", desc: "公开的 AI 口播视频工作台，连接 Web、Desktop、iOS、字幕、本地编辑、Remotion 与 FFmpeg 渲染链路。", ownership: "owned", role: "公开仓库作者", sourceOwner: undefined },
-      { ...base.projects.find((project) => project.id === "reference-roundtable")!, id: "qybaihe-roundtable", desc: "公开的像素多视角讨论产品，探索圆桌空间、角色化观点和讨论结果的可视化表达。", ownership: "owned", role: "公开仓库作者", sourceOwner: undefined },
+      { ...base.projects.find((project) => project.id === "reference-roundtable")!, id: "qybaihe-chat-debate", desc: "像素城市中的多角色辩论群聊，连接人物档案、角色化观点和讨论结果。", ownership: "owned", role: "公开仓库作者", sourceOwner: undefined },
     ],
   }),
   normalizeProfile({

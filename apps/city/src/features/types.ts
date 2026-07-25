@@ -47,6 +47,7 @@ export interface CityNpcDef {
   dialogue: string[];
   route: string;
   actionLabel: string;
+  debateAgentId?: string;
   color: number;
   spriteFrame: number;
   points: { x: number; y: number }[];

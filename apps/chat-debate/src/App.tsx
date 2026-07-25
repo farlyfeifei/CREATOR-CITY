@@ -5,6 +5,7 @@ import {
   Bot,
   Check,
   CircleAlert,
+  Home,
   Info,
   LoaderCircle,
   MessageCircleMore,
@@ -37,6 +38,7 @@ import type {
 } from "@/types";
 
 const STORAGE_KEY = "agent-group-chat.personal-profiles.v1";
+const CREATOR_CITY_URL = "http://localhost:3000/city/neon";
 export function App() {
   const [savedProfiles, setSavedProfiles] = useState<PersonalAgentProfile[]>(loadProfiles);
   const personalAgents = useMemo(
@@ -51,6 +53,7 @@ export function App() {
   const [activeTopic, setActiveTopic] = useState("");
   const [view, setView] = useState<"setup" | "chat">("setup");
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [profileAgentId, setProfileAgentId] = useState("");
   const [mobileMembersOpen, setMobileMembersOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [runtime, setRuntime] = useState<Record<string, AgentRuntimeState>>({});
@@ -69,6 +72,7 @@ export function App() {
   const verdictLockRef = useRef(false);
   const sessionIdRef = useRef(0);
   const failedUserReplyRef = useRef<FailedUserReply | null>(null);
+  const urlHydratedRef = useRef(false);
 
   const selectedAgents = useMemo(
     () => selectedIds.map((id) => allAgents.find((agent) => agent.id === id)).filter((agent): agent is Agent => Boolean(agent)),
@@ -76,6 +80,21 @@ export function App() {
   );
   const turnCount = messages.filter((message) => message.scheduledIndex !== undefined).length;
   const activePhase = schedule[Math.max(0, turnCount - 1)]?.phase ?? null;
+  const profileAgent = allAgents.find((agent) => agent.id === profileAgentId);
+
+  useEffect(() => {
+    if (urlHydratedRef.current) return;
+    urlHydratedRef.current = true;
+    const params = new URLSearchParams(window.location.search);
+    const requestedIds = (params.get("participants") || "")
+      .split(",")
+      .map((value) => value.trim())
+      .filter((id) => allAgents.some((agent) => agent.id === id));
+    const uniqueIds = [...new Set(requestedIds)].slice(0, 6);
+    if (uniqueIds.length >= 2) setSelectedIds(uniqueIds);
+    const requestedProfile = params.get("profile") || "";
+    if (allAgents.some((agent) => agent.id === requestedProfile)) setProfileAgentId(requestedProfile);
+  }, [allAgents]);
 
   useEffect(() => {
     messageEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -328,6 +347,7 @@ export function App() {
           <button className="rail-button is-active" title="群聊"><MessageCircleMore size={21} /></button>
           <button className="rail-button" title="创建个人 Agent" onClick={() => setWizardOpen(true)}><UserRoundPlus size={21} /></button>
           <span className="rail-spacer" />
+          <a className="rail-button" title="返回 Creator City" href={CREATOR_CITY_URL}><Home size={20} /></a>
           <button className="rail-button" title="设置"><Settings2 size={20} /></button>
         </aside>
 
@@ -357,6 +377,7 @@ export function App() {
               <p>{view === "chat" ? "群聊讨论中" : "选择成员与议题"}</p>
             </div>
             <div className="header-actions">
+              <a className="icon-button city-return-button" title="返回 Creator City" href={CREATOR_CITY_URL}><Home size={18} /></a>
               <button className="icon-button" title="创建个人 Agent" onClick={() => setWizardOpen(true)}><UserRoundPlus size={19} /></button>
               <button className="icon-button mobile-only" title="群成员" onClick={() => setMobileMembersOpen(true)}><Users size={19} /></button>
               {view === "chat" && !error && turnCount < schedule.length && (
@@ -424,6 +445,7 @@ export function App() {
       </div>
 
       {wizardOpen && <ProfileWizard onClose={() => setWizardOpen(false)} onSave={saveProfile} />}
+      {profileAgent && <AgentProfileSheet agent={profileAgent} selected={selectedIds.includes(profileAgent.id)} onClose={() => setProfileAgentId("")} onSelect={() => setSelectedIds((current) => current.includes(profileAgent.id) ? current : current.length < 6 ? [...current, profileAgent.id] : current)} />}
       {mobileMembersOpen && (
         <div className="mobile-members-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setMobileMembersOpen(false)}>
           <div className="mobile-members-sheet">
@@ -432,6 +454,36 @@ export function App() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function AgentProfileSheet({ agent, selected, onClose, onSelect }: { agent: Agent; selected: boolean; onClose: () => void; onSelect: () => void }) {
+  const profile = agent.profile;
+  const priorities = profile?.runtime.attentionPriorities ?? [];
+  const principles = profile?.portrait?.values.principles ?? [];
+  return (
+    <div className="sheet-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+      <section className="agent-profile-sheet" aria-label={`${agent.name} 的人物档案`}>
+        <header className="agent-profile-header">
+          <AgentAvatar agent={agent} size={58} />
+          <div><small>{profile ? "PERSONAL AGENT PROFILE" : "BUILT-IN AGENT PERSONA"}</small><h2>{agent.name}</h2><p>{profile?.identity.headline || agent.role}</p></div>
+          <button className="icon-button" type="button" onClick={onClose} title="关闭"><X size={19} /></button>
+        </header>
+        <div className="agent-profile-body">
+          <section><strong>角色</strong><p>{agent.role}</p></section>
+          <section><strong>核心判断</strong><p>{agent.coreBelief}</p></section>
+          <section><strong>表达方式</strong><p>{agent.speechStyle}</p></section>
+          <section><strong>辩论方式</strong><p>{agent.debateStyle}</p></section>
+          {principles.length > 0 && <section><strong>重要原则</strong><ul>{principles.slice(0, 5).map((item) => <li key={item}>{item}</li>)}</ul></section>}
+          {priorities.length > 0 && <section><strong>关注重点</strong><ul>{priorities.slice(0, 6).map((item) => <li key={item}>{item}</li>)}</ul></section>}
+          {profile && <section><strong>代理边界</strong><p>{profile.runtime.groundingPolicy}</p><p>{profile.runtime.safetyNotes}</p></section>}
+        </div>
+        <footer className="agent-profile-footer">
+          <span>{profile?.disclaimer.shortLabel || "原项目预制人物 Persona"}</span>
+          <button type="button" disabled={selected} onClick={onSelect}>{selected ? "已在辩论席" : "加入辩论"}</button>
+        </footer>
+      </section>
     </div>
   );
 }

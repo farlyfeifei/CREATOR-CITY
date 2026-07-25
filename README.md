@@ -27,3 +27,12 @@ npm run dev
 
 The Chat Debate backend requires one of the model providers supported by its original configuration. When no provider key is configured, it must report that AI is unavailable rather than generating local placeholder dialogue.
 
+## Model provider
+
+Copy the example file before starting the apps:
+
+```powershell
+Copy-Item "apps/chat-debate/.env.example" "apps/chat-debate/.env"
+```
+
+The original backend defaults to MiMo (`MIMO_API_KEY`) and also supports the `grok2api` and `opencode_go` OpenAI-compatible providers. Set `AI_CHAT_PROVIDER` to choose one.
