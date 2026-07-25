@@ -40,7 +40,7 @@ import type {
 } from "@/types";
 
 const STORAGE_KEY = "agent-group-chat.personal-profiles.v1";
-const CREATOR_CITY_URL = "http://localhost:3000/city/neon";
+const CREATOR_CITY_URL = import.meta.env.VITE_CREATOR_CITY_URL || "/city/neon";
 export function App() {
   const [savedProfiles, setSavedProfiles] = useState<PersonalAgentProfile[]>(loadProfiles);
   const personalAgents = useMemo(

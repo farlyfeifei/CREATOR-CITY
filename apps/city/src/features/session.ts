@@ -121,9 +121,9 @@ export async function registerSession(emailInput: string, password = ""): Promis
 
 export const createSession = signInSession;
 
-export function clearSession(): void {
+export async function clearSession(): Promise<void> {
   if (typeof window === "undefined") return;
-  void supabase?.auth.signOut();
+  await supabase?.auth.signOut();
   sessionStorage.removeItem(SESSION_KEY);
   localStorage.removeItem(SESSION_KEY);
 }

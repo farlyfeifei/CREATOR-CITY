@@ -12,10 +12,11 @@ import { clearSession, isGuestSession, loadSession } from "@/features/session";
 import type { CityInteractable, SceneObjectDef, SceneObjectId } from "@/features/types";
 
 const CityGame = dynamic(() => import("@/city/CityGame").then((module) => module.CityGame), { ssr: false });
-const CHAT_DEBATE_URL = process.env.NEXT_PUBLIC_CHAT_DEBATE_URL || "http://127.0.0.1:5190";
+const CHAT_DEBATE_URL = process.env.NEXT_PUBLIC_CHAT_DEBATE_URL || "/chat-debate/";
 
 function chatDebateUrl(params: Record<string, string> = {}) {
-  const url = new URL(CHAT_DEBATE_URL, "http://localhost");
+  const origin = typeof window === "undefined" ? "http://localhost" : window.location.origin;
+  const url = new URL(CHAT_DEBATE_URL, origin);
   const session = loadSession();
   if (isGuestSession(session)) url.searchParams.set("guest", "1");
   else if (session?.email) url.searchParams.set("creator", session.email);
@@ -37,7 +38,7 @@ export function CityPage() {
     void loadCloudProfile().then((profile) => setName(profile?.name || loadProfile()?.name || "Creator"));
   }, [router]);
 
-  const signOut = () => { clearSession(); router.push("/"); };
+  const signOut = async () => { await clearSession(); router.push("/"); };
 
   const facilityFor = (object: CityInteractable): SceneObjectDef | null => {
     if (object.kind === "facility") return object;

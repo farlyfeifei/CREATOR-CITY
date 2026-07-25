@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 import { resolve } from "node:path";
 
 export default defineConfig({
+  base: "/chat-debate/",
   plugins: [react()],
   resolve: { alias: { "@": resolve(__dirname, "src") } },
   server: {
