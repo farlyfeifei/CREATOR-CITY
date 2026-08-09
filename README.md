@@ -2,7 +2,13 @@
 
 > AI 创作者的像素城市、个人展厅与交流社区 —— 把每个人的真实素材，变成一部可以逛、可以辩、可以演示的动态主页。
 
-**在线演示**：https://crecity.farly.me
+<div align="center">
+
+## 🟢 产品已上线 · 点击立即体验
+
+### 👉 **https://crecity.farly.me** 👈
+
+</div>
 
 ![登陆页](docs/screenshots/01-landing.png)
 
