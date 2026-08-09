@@ -8,6 +8,8 @@
 
 ### 👉 **https://crecity.farly.me** 👈
 
+### 📘 **作品使用手册（供赛事平台 / 管理员 / 评委）** · [点击下载 PDF](docs/CreatorCity_UserManual.pdf)
+
 </div>
 
 ![登陆页](docs/screenshots/01-landing.png)
