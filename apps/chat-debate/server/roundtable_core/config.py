@@ -8,6 +8,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DEFAULT_MIMO_BASE_URL = "https://api.xiaomimimo.com/v1"
 DEFAULT_MIMO_MODEL = "mimo-v2.5-pro"
+DEFAULT_DASHSCOPE_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+DEFAULT_DASHSCOPE_MODEL = "qwen-plus"
 
 
 class Settings(BaseSettings):
@@ -56,6 +58,11 @@ class Settings(BaseSettings):
     opencode_go_api_key: str | None = None
     opencode_go_chat_url: str = "https://api.openai.com/v1"
     opencode_go_chat_model: str = "gpt-4.1-mini"
+
+    # Aliyun Bailian (DashScope OpenAI-compatible mode), used by the debate layer.
+    dashscope_api_key: str | None = None
+    dashscope_base_url: str = DEFAULT_DASHSCOPE_BASE_URL
+    dashscope_chat_model: str = DEFAULT_DASHSCOPE_MODEL
 
     # Legacy OpenAI-compatible gateway kept as an operational rollback path.
     grok2api_key: str | None = None
@@ -137,6 +144,8 @@ class Settings(BaseSettings):
             return self.opencode_go_api_key.strip() if self.opencode_go_api_key else None
         if self.active_chat_provider == "grok2api":
             return self.grok2api_key.strip() if self.grok2api_key else None
+        if self.active_chat_provider == "dashscope":
+            return self.dashscope_api_key.strip() if self.dashscope_api_key else None
         return self.mimo_api_key.strip() if self.mimo_api_key else None
 
     @property
@@ -145,6 +154,8 @@ class Settings(BaseSettings):
             return self.opencode_go_chat_url
         if self.active_chat_provider == "grok2api":
             return self.grok2api_base_url
+        if self.active_chat_provider == "dashscope":
+            return self.dashscope_base_url
         return self.mimo_base_url
 
     @property
@@ -153,12 +164,14 @@ class Settings(BaseSettings):
             return self.opencode_go_chat_model
         if self.active_chat_provider == "grok2api":
             return self.grok2api_chat_model
+        if self.active_chat_provider == "dashscope":
+            return self.dashscope_chat_model
         return self.mimo_chat_model
 
     @model_validator(mode="after")
     def validate_production_secrets(self) -> Settings:
-        if self.active_chat_provider not in {"mimo", "grok2api", "opencode_go"}:
-            raise ValueError("ai_chat_provider must be mimo, grok2api, or opencode_go")
+        if self.active_chat_provider not in {"mimo", "grok2api", "opencode_go", "dashscope"}:
+            raise ValueError("ai_chat_provider must be mimo, grok2api, opencode_go, or dashscope")
         if self.test_login_enabled:
             if self.is_production:
                 raise ValueError("test login must never be enabled in production")

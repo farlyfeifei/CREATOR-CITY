@@ -80,12 +80,12 @@ class PixelAIProvider:
             "temperature": temperature,
             "response_format": {"type": "json_object"},
         }
-        if provider == "opencode_go":
+        if provider in {"opencode_go", "dashscope"}:
             body["max_tokens"] = max_tokens
         else:
             body["max_completion_tokens"] = max_tokens
         headers = {"Content-Type": "application/json"}
-        if provider in {"grok2api", "opencode_go"}:
+        if provider in {"grok2api", "opencode_go", "dashscope"}:
             headers["Authorization"] = f"Bearer {api_key}"
         else:
             headers["api-key"] = api_key
